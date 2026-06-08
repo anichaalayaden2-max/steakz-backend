@@ -1,0 +1,152 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Branch {
+  id          Int           @id @default(autoincrement())
+  name        String
+  location    String
+  phone       String
+  createdAt   DateTime      @default(now())
+  Customer    Customer[]
+  MenuItem    MenuItem[]
+  Order       Order[]
+  Promotion   Promotion[]
+  Reservation Reservation[]
+  Table       Table[]
+  User        User[]
+}
+
+model Customer {
+  id        Int      @id @default(autoincrement())
+  name      String
+  phone     String
+  email     String?
+  createdAt DateTime @default(now())
+  branchId  Int
+  Branch    Branch   @relation(fields: [branchId], references: [id])
+  Order     Order[]
+}
+
+model MenuItem {
+  id          Int         @id @default(autoincrement())
+  name        String
+  description String
+  price       Float
+  image       String
+  category    String
+  createdAt   DateTime    @default(now())
+  branchId    Int
+  Branch      Branch      @relation(fields: [branchId], references: [id])
+  OrderItem   OrderItem[]
+}
+
+model Order {
+  id          Int         @id @default(autoincrement())
+  status      String
+  totalAmount Float
+  createdAt   DateTime    @default(now())
+  customerId  Int
+  branchId    Int
+  waiterId    Int
+  tableId     Int
+  Branch      Branch      @relation(fields: [branchId], references: [id])
+  Customer    Customer    @relation(fields: [customerId], references: [id])
+  Table       Table       @relation(fields: [tableId], references: [id])
+  User        User        @relation(fields: [waiterId], references: [id])
+  OrderItem   OrderItem[]
+  Payment     Payment[]
+}
+
+model OrderItem {
+  id         Int      @id @default(autoincrement())
+  quantity   Int
+  price      Float
+  orderId    Int
+  menuItemId Int
+  MenuItem   MenuItem @relation(fields: [menuItemId], references: [id])
+  Order      Order    @relation(fields: [orderId], references: [id])
+}
+
+model Payment {
+  id        Int       @id @default(autoincrement())
+  amount    Float
+  method    String
+  status    String
+  createdAt DateTime  @default(now())
+  orderId   Int
+  Order     Order     @relation(fields: [orderId], references: [id])
+  Receipt   Receipt[]
+}
+
+model Promotion {
+  id          Int      @id @default(autoincrement())
+  title       String
+  description String
+  discount    Float
+  startDate   DateTime
+  endDate     DateTime
+  branchId    Int
+  Branch      Branch   @relation(fields: [branchId], references: [id])
+}
+
+model Receipt {
+  id            Int      @id @default(autoincrement())
+  receiptNumber String
+  createdAt     DateTime @default(now())
+  paymentId     Int
+  Payment       Payment  @relation(fields: [paymentId], references: [id])
+}
+
+
+model Table {
+  id          Int           @id @default(autoincrement())
+  tableNumber String
+  capacity    Int
+  branchId    Int
+  status      String        @default("AVAILABLE")
+  Order       Order[]
+  Reservation Reservation[]
+  Branch      Branch        @relation(fields: [branchId], references: [id])
+}
+
+model User {
+  id        Int      @id @default(autoincrement())
+  name      String
+  email     String   @unique
+  password  String
+  role      Role
+  createdAt DateTime @default(now())
+  branchId  Int
+  Order     Order[]
+  Branch    Branch   @relation(fields: [branchId], references: [id])
+}
+
+model Reservation {
+  id              Int      @id @default(autoincrement())
+  customerName    String
+  phone           String
+  guests          Int
+  reservationDate DateTime
+  status          String   @default("PENDING")
+  branchId        Int
+  tableId         Int?
+  createdAt       DateTime @default(now())
+  Branch          Branch   @relation(fields: [branchId], references: [id])
+  Table           Table?   @relation(fields: [tableId], references: [id])
+}
+
+
+enum Role {
+  ADMIN
+  HQ_MANAGER
+  BRANCH_MANAGER
+  CHEF
+  WAITER
+  CASHIER
+}
