@@ -1,0 +1,11 @@
+import { Router } from "express";
+import { getUsers, getUserById, createUser, updateUser, deleteUser, } from "../controllers/userController.js";
+import { authenticate, } from "../middleware/auth.js";
+import { authorize, } from "../middleware/roles.js";
+const router = Router();
+router.get("/", authenticate, authorize("ADMIN"), getUsers);
+router.get("/:id", authenticate, authorize("ADMIN"), getUserById);
+router.post("/", authenticate, authorize("ADMIN"), createUser);
+router.put("/:id", authenticate, authorize("ADMIN"), updateUser);
+router.delete("/:id", authenticate, authorize("ADMIN"), deleteUser);
+export default router;
