@@ -16,7 +16,6 @@ model Branch {
   Customer    Customer[]
   MenuItem    MenuItem[]
   Order       Order[]
-  Promotion   Promotion[]
   Reservation Reservation[]
   Table       Table[]
   User        User[]
@@ -84,16 +83,6 @@ model Payment {
   Receipt   Receipt[]
 }
 
-model Promotion {
-  id          Int      @id @default(autoincrement())
-  title       String
-  description String
-  discount    Float
-  startDate   DateTime
-  endDate     DateTime
-  branchId    Int
-  Branch      Branch   @relation(fields: [branchId], references: [id])
-}
 
 model Receipt {
   id            Int      @id @default(autoincrement())
