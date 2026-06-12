@@ -1,15 +1,17 @@
 import { Request, Response } from "express";
 import prisma from "../lib/prisma.js";
 
+// GET ALL RESERVATIONS - Returns reservations filtered by branch
 export const getReservations = async (req: Request, res: Response) => {
   try {
     const { branchId } = req.query;
 
+    // Filter reservations by branchId if provided - ensures each branch only sees its own reservations
     const reservations = await prisma.reservation.findMany({
       where: branchId ? { branchId: Number(branchId) } : {},
       include: {
-        Branch: true,
-        Table: true,
+        Branch: true, // Include branch details
+        Table: true,  // Include table details to show which table was assigned
       },
     });
 
@@ -20,15 +22,17 @@ export const getReservations = async (req: Request, res: Response) => {
   }
 };
 
+// CREATE RESERVATION - Creates a new reservation and automatically assigns a table
 export const createReservation = async (req: Request, res: Response) => {
   try {
     const { customerName, phone, guests, reservationDate, branchId } = req.body;
 
-    // Criar customer automaticamente se não existir
+    // Check if customer already exists by phone number - avoids creating duplicate customers
     let customer = await prisma.customer.findFirst({
       where: { phone },
     });
 
+    // If customer does not exist, create them automatically - saves staff from manually adding customers
     if (!customer) {
       customer = await prisma.customer.create({
         data: {
@@ -40,7 +44,7 @@ export const createReservation = async (req: Request, res: Response) => {
       });
     }
 
-    // Encontrar table disponível com capacidade suficiente
+    // Find the smallest available table that fits the number of guests - optimises table usage in the restaurant
     const availableTable = await prisma.table.findFirst({
       where: {
         branchId: Number(branchId),
@@ -48,11 +52,11 @@ export const createReservation = async (req: Request, res: Response) => {
         capacity: { gte: Number(guests) },
       },
       orderBy: {
-        capacity: "asc",
+        capacity: "asc", // Get the smallest suitable table first
       },
     });
 
-    // Criar a reserva
+    // Create the reservation linked to the branch and assigned table
     const reservation = await prisma.reservation.create({
       data: {
         customerName,
@@ -67,7 +71,7 @@ export const createReservation = async (req: Request, res: Response) => {
       },
     });
 
-    // Marcar table como OCCUPIED
+    // Mark the assigned table as OCCUPIED - prevents the same table being booked twice
     if (availableTable) {
       await prisma.table.update({
         where: { id: availableTable.id },
@@ -82,12 +86,14 @@ export const createReservation = async (req: Request, res: Response) => {
   }
 };
 
+// UPDATE RESERVATION - Updates an existing reservation's details
 export const updateReservation = async (req: Request, res: Response) => {
   try {
+    // Get the reservation ID from the URL - identifies which reservation to update
     const id = Number(req.params.id);
     const { customerName, phone, guests, reservationDate, status } = req.body;
 
-    // Se cancelar reserva, libertar a table
+    // If reservation is cancelled, release the table back to AVAILABLE - allows the table to be used by other customers
     if (status === "CANCELLED") {
       const existing = await prisma.reservation.findUnique({ where: { id } });
       if (existing?.tableId) {
@@ -98,6 +104,7 @@ export const updateReservation = async (req: Request, res: Response) => {
       }
     }
 
+    // Update the reservation with the new details
     const reservation = await prisma.reservation.update({
       where: { id },
       data: {
@@ -119,11 +126,13 @@ export const updateReservation = async (req: Request, res: Response) => {
   }
 };
 
+// DELETE RESERVATION - Removes a reservation and releases the table
 export const deleteReservation = async (req: Request, res: Response) => {
   try {
+    // Get the reservation ID from the URL - identifies which reservation to delete
     const id = Number(req.params.id);
 
-    // Libertar table ao apagar reserva
+    // Release the table back to AVAILABLE before deleting - ensures the table can be used again
     const existing = await prisma.reservation.findUnique({ where: { id } });
     if (existing?.tableId) {
       await prisma.table.update({
@@ -132,6 +141,7 @@ export const deleteReservation = async (req: Request, res: Response) => {
       });
     }
 
+    // Delete the reservation from the database - removes cancelled or incorrect bookings
     await prisma.reservation.delete({ where: { id } });
 
     res.status(200).json({ message: "Reservation deleted" });

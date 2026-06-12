@@ -1,74 +1,49 @@
 import prisma from "./prisma.js";
 import bcrypt from "bcrypt";
 
+// SEED FILE - Populates the database with initial data for testing and presentation
 async function main() {
   console.log("Seeding database...");
 
-  // Create London branch
+  // Create the 3 restaurant branches - sets up the London, Manchester and Liverpool locations
   const london = await prisma.branch.upsert({
     where: { id: 1 },
     update: {},
-    create: {
-      name: "Steakz London",
-      location: "London",
-      phone: "999999999",
-    },
+    create: { name: "Steakz London", location: "London", phone: "999999999" },
   });
 
-  // Create Manchester branch
   const manchester = await prisma.branch.upsert({
     where: { id: 2 },
     update: {},
-    create: {
-      name: "Steakz Manchester",
-      location: "Manchester",
-      phone: "999999999",
-    },
+    create: { name: "Steakz Manchester", location: "Manchester", phone: "999999999" },
   });
 
-  // Create Liverpool branch
   const liverpool = await prisma.branch.upsert({
     where: { id: 3 },
     update: {},
-    create: {
-      name: "Steakz Liverpool",
-      location: "Liverpool",
-      phone: "999999999",
-    },
+    create: { name: "Steakz Liverpool", location: "Liverpool", phone: "999999999" },
   });
 
   console.log("Branches created!");
 
-  // Hash password
+  // Encrypt the default password - all test users share the same password "123456"
   const password = await bcrypt.hash("123456", 10);
 
-  // Create Admin
+  // Create Admin user - has access to all branches and all features
   await prisma.user.upsert({
     where: { email: "admin@steakz.com" },
     update: {},
-    create: {
-      name: "Admin",
-      email: "admin@steakz.com",
-      password,
-      role: "ADMIN",
-      branchId: london.id,
-    },
+    create: { name: "Admin", email: "admin@steakz.com", password, role: "ADMIN", branchId: london.id },
   });
 
-  // Create HQ Manager
+  // Create HQ Manager - can view reports and performance across all branches
   await prisma.user.upsert({
     where: { email: "hq@steakz.com" },
     update: {},
-    create: {
-      name: "HQ Manager",
-      email: "hq@steakz.com",
-      password,
-      role: "HQ_MANAGER",
-      branchId: london.id,
-    },
+    create: { name: "HQ Manager", email: "hq@steakz.com", password, role: "HQ_MANAGER", branchId: london.id },
   });
 
-  // London users
+  // Create staff for London branch - one user per role
   await prisma.user.upsert({
     where: { email: "manager.london@steakz.com" },
     update: {},
@@ -93,7 +68,7 @@ async function main() {
     create: { name: "Cashier London", email: "cashier.london@steakz.com", password, role: "CASHIER", branchId: london.id },
   });
 
-  // Manchester users
+  // Create staff for Manchester branch - one user per role
   await prisma.user.upsert({
     where: { email: "manager.manchester@steakz.com" },
     update: {},
@@ -118,7 +93,7 @@ async function main() {
     create: { name: "Cashier Manchester", email: "cashier.manchester@steakz.com", password, role: "CASHIER", branchId: manchester.id },
   });
 
-  // Liverpool users
+  // Create staff for Liverpool branch - one user per role
   await prisma.user.upsert({
     where: { email: "manager.liverpool@steakz.com" },
     update: {},
@@ -143,7 +118,7 @@ async function main() {
     create: { name: "Cashier Liverpool", email: "cashier.liverpool@steakz.com", password, role: "CASHIER", branchId: liverpool.id },
   });
 
-  // London Tables
+  // Create 5 tables for each branch with different capacities - supports different group sizes
   await prisma.table.createMany({
     data: [
       { tableNumber: "T1", capacity: 1, branchId: london.id, status: "AVAILABLE" },
@@ -152,10 +127,9 @@ async function main() {
       { tableNumber: "T4", capacity: 6, branchId: london.id, status: "AVAILABLE" },
       { tableNumber: "T5", capacity: 10, branchId: london.id, status: "AVAILABLE" },
     ],
-    skipDuplicates: true,
+    skipDuplicates: true, // Skip if tables already exist - prevents duplicate data
   });
 
-  // Manchester Tables
   await prisma.table.createMany({
     data: [
       { tableNumber: "T1", capacity: 1, branchId: manchester.id, status: "AVAILABLE" },
@@ -167,7 +141,6 @@ async function main() {
     skipDuplicates: true,
   });
 
-  // Liverpool Tables
   await prisma.table.createMany({
     data: [
       { tableNumber: "T1", capacity: 1, branchId: liverpool.id, status: "AVAILABLE" },
@@ -179,7 +152,7 @@ async function main() {
     skipDuplicates: true,
   });
 
-  // London Menu Items
+  // Create menu items for London - each branch has its own menu
   await prisma.menuItem.createMany({
     data: [
       { name: "Ribeye Steak", description: "Prime cut, rich marbling, grilled to perfection", price: 28.90, image: "", category: "STEAK", branchId: london.id },
@@ -198,7 +171,7 @@ async function main() {
     skipDuplicates: true,
   });
 
-  // Manchester Menu Items
+  // Create menu items for Manchester
   await prisma.menuItem.createMany({
     data: [
       { name: "Ribeye Steak", description: "Prime cut, rich marbling, grilled to perfection", price: 28.90, image: "", category: "STEAK", branchId: manchester.id },
@@ -215,7 +188,7 @@ async function main() {
     skipDuplicates: true,
   });
 
-  // Liverpool Menu Items
+  // Create menu items for Liverpool
   await prisma.menuItem.createMany({
     data: [
       { name: "Ribeye Steak", description: "Prime cut, rich marbling, grilled to perfection", price: 28.90, image: "", category: "STEAK", branchId: liverpool.id },
@@ -235,6 +208,7 @@ async function main() {
   console.log("✅ Seed completed!");
 }
 
+// Run the seed function and disconnect from the database when done
 main()
   .catch((e) => {
     console.error(e);
